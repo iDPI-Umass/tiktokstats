@@ -5,7 +5,10 @@ import asyncio
 import aiohttp
 import random
 import calendar
+import itertools
 from datetime import datetime, timezone
+
+import pandas as pd
 
 JAN_1_2018 = 1514764800
 TIME_NOW = int(datetime.utcnow().timestamp())
@@ -43,6 +46,11 @@ def extract_datetime_from_id(id_int: int):
     return datetime.utcfromtimestamp(int(timestamp_binary, 2))
 
 
+def extract_unique_binary_from_id(id_int: int):
+    id_binary = "{:b}".format(id_int).zfill(64)
+    return id_binary[32:]
+
+
 def generate_ids_from_date(n_ids:int, year:int, month:int, day:int) -> list[int]:
     ids = []
     for i in range(n_ids):
@@ -64,37 +72,62 @@ def generate_ids_from_month(n_days:int, year:int, month:int, ids_per_day = 10000
     return ids
 
 
-def main():
-
-    conn = aiohttp.TCPConnector(limit_per_host=100, limit=0, ttl_dns_cache=300)
-    PARALLEL_REQUESTS = 100
-    results = []
-
-    urls = ['https://www.tiktok.com/api/comment/list/?aweme_id=7350639310271532293&count=1&cursor=0',
-            'https://www.tiktok.com/api/comment/list/?aweme_id=7345721731560049966&count=1&cursor=0',
-            'https://www.tiktok.com/api/comment/list/?aweme_id=7348110594538540321&count=1&cursor=0',
-            'https://www.tiktok.com/api/comment/list/?aweme_id=7345733301618904322&count=1&cursor=0'
-            'https://www.tiktok.com/api/comment/list/?aweme_id=7345200301618904322&count=1&cursor=0']
-
-
-    async def gather_with_conncurrency(n):
-        semaphore = asyncio.Semaphore(n)
-        session = aiohttp.ClientSession(connector=conn)
-        async def get(url):
-            async with semaphore:
-                async with session.get(url, ssl=False) as response:
-                    obj = json.loads(await response.read())
-                    results.append(obj)
-        await asyncio.gather(*(get(url) for url in urls))
-        await session.close()
+def generate_bitswap_ids(id_int: int):
+    swap = {"0": "1", "1": "0"}
+    id_binary = "{:b}".format(id_int).zfill(64)
+    timestamp_binary = id_binary[0:32]
+    unique_binary = id_binary[32:64]
+    bitswapped_ids = [unique_binary] + [unique_binary[0:i]+swap[unique_binary[i]]+unique_binary[i+1:] for i in range(32)]
+    bitswapped_ids = [binary_to_decimal_id(timestamp_binary+bitswapped_id) for bitswapped_id in bitswapped_ids]
+    print(bitswapped_ids)
+    for bitswapped_id in bitswapped_ids:
+        print(bitswapped_id)
+    # print(timestamp_binary)
+    # print(unique_binary)
 
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(gather_with_conncurrency(PARALLEL_REQUESTS))
-    conn.close()
+def get_first_10_chars():
+    return pd.read_csv("first10.csv", dtype=str, header=None)[0].to_list()
 
 
-    print(json.dumps(results))
+def get_last_6_chars():
+    return pd.read_csv("last6.csv", dtype=str, header=None)[0].to_list()
+
+
+def generate_all_same_second_ids(id_int: int):
+    id_binary = "{:b}".format(id_int).zfill(64)
+    timestamp_binary = id_binary[0:32]
+    all_ids = []
+    for segment_1 in get_first_10_chars():
+        for segment_2 in ["".join(seq) for seq in itertools.product("01", repeat=5)]:
+            for segment_3 in get_last_6_chars():
+                all_ids.append(int(f"{timestamp_binary}{segment_1}000{segment_2}00110100{segment_3}", 2))
+    return all_ids
+
+
+def generate_same_second_ids_by_day(year, month, day):
+    random_time_id = generate_ids_from_date(1, year, month, day)
+    all_ids = generate_all_same_second_ids(random_time_id[0])
+    print(all_ids[5000])
+    print(all_ids[2345])
+    return all_ids
+
+
+# print(len(generate_same_second_ids_by_day(2020, 3, 31)))
+
+
+# generate_bitswap_ids(7346646469476240645)  # user8574804403074
+# generate_bitswap_ids(7346646471623724293)  # undefined.toss
+# generate_bitswap_ids(7346646469476224261)  # khaled_55_dk
+
+#
+# print(extract_unique_binary_from_id(7346646469476240645))
+# print(extract_unique_binary_from_id(7346646471623724293))
+# print(extract_unique_binary_from_id(7346646469476224261))
+# print(extract_unique_binary_from_id(7346646472697466117))
+# print(extract_unique_binary_from_id(7346646471623593221))
+# print(extract_unique_binary_from_id(7346646469476093189))
+
 # id = 7339313555189009710
 # # id = 6690266970199409670
 # id = 7320340725672919813
@@ -120,5 +153,6 @@ def main():
 # ids = generate_ids_from_month(10, 2020, 5)
 # for id in ids:
 #     print(extract_datetime_from_id(id))
+
 
 
