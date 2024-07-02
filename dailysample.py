@@ -87,6 +87,7 @@ def check_url(url):
             driver = get_driver(reset_driver)
             reset_driver = False
             driver.get(url)
+            driver.implicitly_wait(5)
             current_title = driver.title
             # tqdm.write(current_title)
             if driver.title == "Access Denied" or "s videos with | TikTok" in driver.title:
@@ -126,7 +127,7 @@ while True:
     with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_queries.json"), "w") as f:
         json.dump(all_ids, f)
     with tqdm(total=len(all_ids)) as pbar:
-        with ThreadPoolExecutor(max_workers=30) as executor:
+        with ThreadPoolExecutor(max_workers=15) as executor:
             results = []
             futures = [executor.submit(check_url, f"https://www.tiktok.com/@/video/{generated_id}") for
                        generated_id in all_ids]
