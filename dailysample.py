@@ -16,7 +16,7 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from metadata import download_metadata
 
 ROOT_DIR = os.path.realpath(os.path.dirname(__file__))
-thread_local = threading.local()
+
 collection = f"random_tiktok_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
 
 
@@ -54,11 +54,13 @@ def date_range(start_date, end_date):
     for n in range(int((end_date-start_date).days)):
         yield start_date + timedelta(n)
 
+thread_local = threading.local()
 
 def get_driver(reset_driver=False):
     if reset_driver:
         setattr(thread_local, 'driver', None)
     driver = getattr(thread_local, 'driver', None)
+    # print(driver)
     if driver is None:
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument("--no-sandbox")
@@ -92,7 +94,7 @@ def check_url(url):
             # tqdm.write(current_title)
             if driver.title == "Access Denied" or "s videos with | TikTok" in driver.title:
                 reset_driver = True
-                driver.close()
+                driver.quit()
                 sleep(5)
             else:
                 is_video = url != driver.current_url  # valid videos will autofill uploader username in url
@@ -111,7 +113,7 @@ def check_url(url):
             if "Message: invalid session id" not in str(e):  # "invalid session id" error is fixed with a driver reset
                 tqdm.write(f"{video_id} {str(e)}")
             reset_driver = True
-            driver.close()
+            driver.quit()
             sleep(5)
         tries += 1
     # if check_url fails multiple times, ID is likely associated with private video
