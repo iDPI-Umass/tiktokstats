@@ -80,7 +80,7 @@ def check_url(url):
     """
     video_id = url.split("/")[-1]
     tries = 0
-    reset_driver = False
+    reset_driver = True
     current_title = ""
     while tries < 3:
         try:
