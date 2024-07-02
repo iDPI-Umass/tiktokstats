@@ -126,7 +126,7 @@ while True:
     with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_queries.json"), "w") as f:
         json.dump(all_ids, f)
     with tqdm(total=len(all_ids)) as pbar:
-        with ThreadPoolExecutor(max_workers=15) as executor:
+        with ThreadPoolExecutor(max_workers=30) as executor:
             results = []
             futures = [executor.submit(check_url, f"https://www.tiktok.com/@/video/{generated_id}") for
                        generated_id in all_ids]
