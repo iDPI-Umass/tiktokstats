@@ -1,8 +1,8 @@
-import os
-import sys
-import json
-import asyncio
-import aiohttp
+# import os
+# import sys
+# import json
+# import asyncio
+# import aiohttp
 import random
 import calendar
 import itertools
@@ -23,17 +23,25 @@ def hex_to_binary(hex_string: str) -> str:
     # return bin(int(hex_string, 16)).zfill(4)
 
 
-def generate_resource_binary_str(resource: str = "D") -> str:
-    return f"{random_bits(10)}000{random_bits(5)}00{hex_to_binary(resource)}00{random_bits(6)}"
+def generate_resource_binary_str(resource_type: str = "D", incrementer_shortcut=False) -> str:
+    if incrementer_shortcut:
+        return f"{random_bits(10)}0000{random_bits(4)}00{hex_to_binary(resource_type)}00{random_bits(6)}"
+    return f"{random_bits(10)}00{random_bits(6)}00{hex_to_binary(resource_type)}00{random_bits(6)}"
 
+
+def get_random_timestamp(start_timestamp: int = None, end_timestamp: int = None) -> int:
+    if start_timestamp is None:
+        start_timestamp = JAN_1_2018
+    if end_timestamp is None:
+        end_timestamp = TIME_NOW
+    return random.randint(start_timestamp, end_timestamp)
 
 def generate_binary_id(timestamp: int = None, resource: str = "D"):
     if resource not in ["6", "B", "0", "4", "D"]:
         raise ValueError(
             f"{resource} is not a valid resource type. Must be 6 (devices), B (live sessions), 0 or 4 (accounts), D (videos)")
     if timestamp is None:
-        timestamp = random.randint(JAN_1_2018, TIME_NOW)
-        # print(datetime.utcfromtimestamp(timestamp))
+        timestamp = get_random_timestamp()
     return "{:b}".format(timestamp).zfill(32) + generate_resource_binary_str(resource)
 
 
@@ -105,54 +113,21 @@ def generate_all_same_second_ids(id_int: int):
     return all_ids
 
 
+def generate_ids_from_timestamp(timestamp: int = None, n: int = 50000, resource_type: str = "D", incrementer_shortcut=False) -> list[int]:
+    if timestamp is None:
+        timestamp = get_random_timestamp()
+    timestamp_binary = "{:b}".format(timestamp).zfill(32)
+    unique_ids = set()
+    while len(unique_ids) < n:
+        unique_ids.add(generate_resource_binary_str(resource_type, incrementer_shortcut))
+    unique_ids = list(unique_ids)
+    unique_ids = [int(f"{timestamp_binary}{unique_id}", 2) for unique_id in unique_ids]
+    return unique_ids
+
+
 def generate_same_second_ids_by_day(year, month, day):
     random_time_id = generate_ids_from_date(1, year, month, day)
     all_ids = generate_all_same_second_ids(random_time_id[0])
     print(all_ids[5000])
     print(all_ids[2345])
     return all_ids
-
-
-# print(len(generate_same_second_ids_by_day(2020, 3, 31)))
-
-
-# generate_bitswap_ids(7346646469476240645)  # user8574804403074
-# generate_bitswap_ids(7346646471623724293)  # undefined.toss
-# generate_bitswap_ids(7346646469476224261)  # khaled_55_dk
-
-#
-# print(extract_unique_binary_from_id(7346646469476240645))
-# print(extract_unique_binary_from_id(7346646471623724293))
-# print(extract_unique_binary_from_id(7346646469476224261))
-# print(extract_unique_binary_from_id(7346646472697466117))
-# print(extract_unique_binary_from_id(7346646471623593221))
-# print(extract_unique_binary_from_id(7346646469476093189))
-
-# id = 7339313555189009710
-# # id = 6690266970199409670
-# id = 7320340725672919813
-# id_binary = "{:b}".format(id)
-# print(len(id_binary))
-# id_timestamp = int(id_binary[:31], 2)
-# print(id_timestamp)
-#
-# dt = datetime.fromtimestamp(id_timestamp)
-# print(dt)
-#
-# for i in range(50):
-#     binary_id = generate_id(resource="D")
-#     print(binary_id)
-#     print(int(binary_id, 2))
-#     # print(extract_datetime_from_id(int(binary_id, 2)))
-#
-
-# generate_ids_from_date(100, 2022, 12, 1)
-# print(type(random_date(2005, 12)))
-
-
-# ids = generate_ids_from_month(10, 2020, 5)
-# for id in ids:
-#     print(extract_datetime_from_id(id))
-
-
-
