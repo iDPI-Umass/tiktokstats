@@ -74,6 +74,22 @@ def get_driver(reset_driver=False):
     return driver
 
 
+def extract_metadata(page_source) -> tuple[dict, str, str]:
+    soup = BeautifulSoup(page_source, "html.parser")
+    rehydration_script_elements = soup.select('script#__UNIVERSAL_DATA_FOR_REHYDRATION__')
+    if len(rehydration_script_elements) == 1:
+        rehydration_dict = json.loads(rehydration_script_elements[0].text)
+        # extract status code / status message
+        if "__DEFAULT_SCOPE__" in rehydration_dict and "webapp.video-detail" in rehydration_dict["__DEFAULT_SCOPE__"]:
+            return (rehydration_dict["__DEFAULT_SCOPE__"]["webapp.video-detail"],
+                    str(rehydration_dict["__DEFAULT_SCOPE__"]["webapp.video-detail"]["statusCode"]),
+                    rehydration_dict["__DEFAULT_SCOPE__"]["webapp.video-detail"]["statusMsg"])
+        else:
+            return {}, "ERROR", "__DEFAULT_SCOPE__ or webapp.video-detail not in data for rehydration"
+    else:
+        return {}, "ERROR", "script#__UNIVERSAL_DATA_FOR_REHYDRATION__"
+
+
 def check_url(url):
     """
     Check if url exists
@@ -84,6 +100,7 @@ def check_url(url):
     tries = 0
     reset_driver = False
     current_title = ""
+    current_errormsg = ""
     while tries < 4:
         try:
             driver = get_driver(reset_driver)
@@ -97,28 +114,35 @@ def check_url(url):
                 driver.quit()
                 sleep(5)
             else:
-                is_video = url != driver.current_url  # valid videos will autofill uploader username in url
-                if is_video:
-                    soup = BeautifulSoup(driver.page_source, "html.parser")
-                    rehydration_script_elements = soup.select('script#__UNIVERSAL_DATA_FOR_REHYDRATION__')
-                    if len(rehydration_script_elements) == 1:
-                        rehydration_dict = json.loads(rehydration_script_elements[0].text)
-                        with open(os.path.join(ROOT_DIR, "collections", collection, "metadata", f"{video_id}.json"), "w") as f:
-                            json.dump(rehydration_dict, f)
-                    # metadata_dict = download_metadata(driver.current_url)  # yt-dlp download (slow!)
-                    # with open(f"metadata/{video_id}.json", "w") as f:
-                    #     json.dump(metadata_dict, f)
-                return {"id": str(video_id), "url": driver.current_url, "title": driver.title, "is_video": is_video}
+                # is_video = url != driver.current_url  # valid public videos will autofill uploader username in url
+                metadata_dict, current_statuscode, current_statusmsg = extract_metadata(driver.page_source)
+                if current_statuscode == "0":
+                    with open(os.path.join(ROOT_DIR, "collections", collection, "metadata", f"{video_id}.json"), "w") as f:
+                        json.dump(metadata_dict, f)
+                return {
+                    "id": str(video_id),
+                    "url": driver.current_url,
+                    "title": driver.title,
+                    "statusCode": current_statuscode,
+                    "statusMsg": current_statusmsg
+                }
         except Exception as e:
-            if "Message: invalid session id" not in str(e):  # "invalid session id" error is fixed with a driver reset
-                tqdm.write(f"{video_id} {str(e)}")
+            current_errormsg = str(e)
+            if "Message: invalid session id" not in current_errormsg:  # "invalid session id" error is fixed with a driver reset
+                tqdm.write(f"{video_id} {current_errormsg}")
             reset_driver = True
             driver.quit()
             sleep(5)
         tries += 1
     # if check_url fails multiple times, ID is likely associated with private video
     tqdm.write(f"{video_id} returning none")
-    return {"id": str(video_id), "url": url, "title": current_title, "is_video": False}
+    return {
+        "id": str(video_id),
+        "url": url,
+        "title": current_title,
+        "statusCode": "ERROR",
+        "statusMsg": current_errormsg
+    }
 
 
 print(initialize_collection(collection))
@@ -134,12 +158,12 @@ while True:
             futures = [executor.submit(check_url, f"https://www.tiktok.com/@/video/{generated_id}") for
                        generated_id in all_ids]
             for future in as_completed(futures):
-                if future.result()["is_video"]:
-                    tqdm.write("")
+                if future.result()["statusCode"] == "0":
                     tqdm.write(future.result()["id"])
                     tqdm.write("{:b}".format(int(future.result()["id"])).zfill(64))
                 results.append(future.result())
                 pbar.update(1)
     with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_hits.json"), "w") as f:
         json.dump(results, f)
-    # pd.DataFrame(results).to_csv(f"datetest/samesecond_{test_id}.csv", index=False, header=True)
+
+# pd.DataFrame(results).to_csv(f"datetest/samesecond_{test_id}.csv", index=False, header=True)
