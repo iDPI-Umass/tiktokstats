@@ -2,18 +2,15 @@ import json
 import os
 import stat
 import threading
-import pandas as pd
 from tqdm import tqdm
 from time import sleep
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from datetime import date, timedelta, datetime
+from datetime import timedelta, datetime
 from webdriver_manager.chrome import ChromeDriverManager
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from id import get_random_timestamp, generate_ids_from_timestamp
+from tiktoktools.id import generate_random_timestamp, generate_ids_from_timestamp
 from selenium.webdriver.chrome.service import Service as ChromeService
-
-from metadata import download_metadata
 
 ROOT_DIR = os.path.realpath(os.path.dirname(__file__))
 
@@ -147,7 +144,7 @@ def check_url(url):
 
 print(initialize_collection(collection))
 while True:
-    random_timestamp = get_random_timestamp()
+    random_timestamp = generate_random_timestamp()
     all_ids = generate_ids_from_timestamp(random_timestamp, incrementer_shortcut=False)
     print(datetime.utcfromtimestamp(random_timestamp))
     with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_queries.json"), "w") as f:

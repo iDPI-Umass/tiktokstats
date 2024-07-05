@@ -1,13 +1,9 @@
 import threading
 from time import sleep
 import datetime
-import asyncio
-from functools import wraps
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from queue import Queue
-from threading import Thread
 
-from id import generate_ids_from_date
+from tiktoktools.id import generate_ids_from_date
 
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
