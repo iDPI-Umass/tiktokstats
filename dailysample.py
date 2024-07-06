@@ -86,7 +86,7 @@ def check_url(url):
             page_source, current_title, current_url = driver.page_source, driver.title, driver.current_url
             if not current_title == "Access Denied":  # and ("s videos with | TikTok" not in current_title):
                 metadata_dict, current_statuscode, current_statusmsg = extract_metadata(page_source)
-                if current_url != url and current_statuscode != "0":
+                if (current_url != url and current_statuscode != "0") or current_statuscode == "100004":
                     driver.quit()
                     sleep(5)
                     setattr(thread_local, 'driver', None)
