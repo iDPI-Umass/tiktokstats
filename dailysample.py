@@ -6,13 +6,17 @@ from tqdm import tqdm
 from time import sleep
 from selenium import webdriver
 from datetime import datetime
+from selenium.webdriver.common.by import By
 from tiktoktools.metadata import extract_metadata
 from tiktoktools.time import generate_random_timestamp
 from tiktoktools.id import generate_ids_from_timestamp
+from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support import expected_conditions
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from selenium.webdriver.chrome.service import Service as ChromeService
 from tiktoktools import ROOT_DIR, initialize_collection, JAN_1_2018, TIME_NOW
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--samplesize", type=int, help="number of IDs to sample per second")
@@ -77,20 +81,28 @@ def check_url(url):
         try:
             driver = get_driver(reset_driver)
             driver.get(url)
-            driver.implicitly_wait(5)  # wait up to 5 secs just in case things don't load immediately?
+            WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "script#__UNIVERSAL_DATA_FOR_REHYDRATION__")))
+            # driver.implicitly_wait(5)  # wait up to 5 secs just in case things don't load immediately?
             page_source, current_title, current_url = driver.page_source, driver.title, driver.current_url
             if not current_title == "Access Denied":  # and ("s videos with | TikTok" not in current_title):
                 metadata_dict, current_statuscode, current_statusmsg = extract_metadata(page_source)
-                if current_statuscode == "0":
-                    with open(os.path.join(ROOT_DIR, "collections", collection, "metadata", f"{video_id}.json"), "w") as f:
-                        json.dump(metadata_dict, f)
-                return {
-                    "id": str(video_id),
-                    "url": current_url,
-                    "title": current_title,
-                    "statusCode": current_statuscode,
-                    "statusMsg": current_statusmsg
-                }
+                if current_url != url and current_statuscode != "0":
+                    driver.quit()
+                    sleep(5)
+                else:
+                    if current_statuscode == "0":
+                        with open(os.path.join(ROOT_DIR, "collections", collection, "metadata", f"{video_id}.json"), "w") as f:
+                            json.dump(metadata_dict, f)
+                    return {
+                        "id": str(video_id),
+                        "url": current_url,
+                        "title": current_title,
+                        "statusCode": current_statuscode,
+                        "statusMsg": current_statusmsg
+                    }
+            else:
+                driver.quit()
+                sleep(5)
         except Exception as e:
             current_errormsg = str(e)
             if "Message: invalid session id" not in current_errormsg:  # "invalid session id" error is fixed with a driver reset
