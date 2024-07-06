@@ -79,7 +79,7 @@ def check_url(url):
             driver.get(url)
             driver.implicitly_wait(5)  # wait up to 5 secs just in case things don't load immediately?
             page_source, current_title, current_url = driver.page_source, driver.title, driver.current_url
-            if (not current_title == "Access Denied") and ("s videos with | TikTok" not in current_title):
+            if not current_title == "Access Denied":  # and ("s videos with | TikTok" not in current_title):
                 metadata_dict, current_statuscode, current_statusmsg = extract_metadata(page_source)
                 if current_statuscode == "0":
                     with open(os.path.join(ROOT_DIR, "collections", collection, "metadata", f"{video_id}.json"), "w") as f:
