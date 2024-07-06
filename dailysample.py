@@ -89,6 +89,7 @@ def check_url(url):
                 if current_url != url and current_statuscode != "0":
                     driver.quit()
                     sleep(5)
+                    setattr(thread_local, 'driver', None)
                 else:
                     if current_statuscode == "0":
                         with open(os.path.join(ROOT_DIR, "collections", collection, "metadata", f"{video_id}.json"), "w") as f:
@@ -103,13 +104,18 @@ def check_url(url):
             else:
                 driver.quit()
                 sleep(5)
+                setattr(thread_local, 'driver', None)
         except Exception as e:
             current_errormsg = str(e)
             if "Message: invalid session id" not in current_errormsg:  # "invalid session id" error is fixed with a driver reset
                 tqdm.write(f"{video_id} {current_errormsg}")
-        tries += 1
-        reset_driver = True
-    # if check_url fails multiple times, ID is likely associated with private video
+            driver = getattr(thread_local, 'driver', None)
+            if driver is not None:
+                driver.quit()
+            setattr(thread_local, 'driver', None)
+        finally:
+            tries += 1
+            reset_driver = True
     tqdm.write(f"{video_id} returning none")
     return {
         "id": str(video_id),
