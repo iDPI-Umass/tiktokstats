@@ -1,63 +1,55 @@
-import json
 import os
-import stat
+import json
+import argparse
 import threading
 from tqdm import tqdm
 from time import sleep
-from bs4 import BeautifulSoup
 from selenium import webdriver
-from datetime import timedelta, datetime
+from datetime import datetime
+from tiktoktools.metadata import extract_metadata
+from tiktoktools.time import generate_random_timestamp
+from tiktoktools.id import generate_ids_from_timestamp
 from webdriver_manager.chrome import ChromeDriverManager
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from tiktoktools.id import generate_random_timestamp, generate_ids_from_timestamp
 from selenium.webdriver.chrome.service import Service as ChromeService
+from tiktoktools import ROOT_DIR, initialize_collection, JAN_1_2018, TIME_NOW
 
-ROOT_DIR = os.path.realpath(os.path.dirname(__file__))
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--samplesize", type=int, help="number of IDs to sample per second")
+parser.add_argument("-t", "--threads", type=int, help="number of threads to use")
+parser.add_argument("-b", "--begintimestamp", type=int, help="linux timestamp to start sampling from")
+parser.add_argument("-e", "--endtimestamp", type=int, help="linux timestamp to end sampling at")
+parser.add_argument("-i", "--incrementershortcut", action="store_true", help="take incrementer shortcut")
+args = parser.parse_args()
 
+sample_size, threads, begin_timestamp, end_timestamp, incrementer_shortcut = 50000, 15, JAN_1_2018, TIME_NOW, False
 collection = f"random_tiktok_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
-
-
-def initialize_collection(collection_name: str):
-    if not os.path.exists(os.path.join(ROOT_DIR, "collections")):
-        os.makedirs(os.path.join(ROOT_DIR, "collections"))
-        try:
-            os.chmod(os.path.join(ROOT_DIR, "collections"),
-                     stat.S_IRWXU | stat.S_IRGRP | stat.S_IRWXO)
-        except Exception as e:
-            print(e)
-    if not os.path.exists(os.path.join(ROOT_DIR, "collections", collection_name)):
-        os.makedirs(os.path.join(ROOT_DIR, "collections", collection_name))
-        os.chmod(os.path.join(ROOT_DIR, "collections", collection_name),
-                 stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-        # os.makedirs(os.path.join(ROOT_DIR, "collections", collection_name, "logs"))
-        # os.chmod(os.path.join(ROOT_DIR, "collections", collection_name, "logs"),
-        #          stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-        os.makedirs(os.path.join(ROOT_DIR, "collections", collection_name, "metadata"))
-        os.chmod(os.path.join(ROOT_DIR, "collections", collection_name, "metadata"),
-                 stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-        os.makedirs(os.path.join(ROOT_DIR, "collections", collection_name, "queries"))
-        os.chmod(os.path.join(ROOT_DIR, "collections", collection_name, "queries"),
-                 stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-        # os.makedirs(os.path.join(ROOT_DIR, "collections", collection_name, "transcripts"))
-        # os.chmod(os.path.join(ROOT_DIR, "collections", collection_name, "transcripts"),
-        #          stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-        # os.makedirs(os.path.join(ROOT_DIR, "collections", collection_name, "wavs"))
-        # os.chmod(os.path.join(ROOT_DIR, "collections", collection_name, "wavs"),
-        #          stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-    return os.path.join(ROOT_DIR, "collections", collection_name)
-
-
-def date_range(start_date, end_date):
-    for n in range(int((end_date-start_date).days)):
-        yield start_date + timedelta(n)
-
 thread_local = threading.local()
 
+if args.samplesize is not None:
+    sample_size = args.samplesize
+if args.threads is not None:
+    threads = args.threads
+if args.begintimestamp is not None:
+    begin_timestamp = args.begintimestamp
+if args.endtimestamp is not None:
+    end_timestamp = args.endtimestamp
+if args.incrementershortcut:
+    incrementer_shortcut = args.incrementershortcut
+
+
 def get_driver(reset_driver=False):
-    if reset_driver:
-        setattr(thread_local, 'driver', None)
+    """
+    manage selenium webdriver instances for each running thread
+    :param reset_driver:
+    :return:
+    """
     driver = getattr(thread_local, 'driver', None)
-    # print(driver)
+    if reset_driver:
+        if driver is not None:
+            driver.quit()
+            sleep(5)
+        setattr(thread_local, 'driver', None)
     if driver is None:
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument("--no-sandbox")
@@ -71,55 +63,31 @@ def get_driver(reset_driver=False):
     return driver
 
 
-def extract_metadata(page_source) -> tuple[dict, str, str]:
-    soup = BeautifulSoup(page_source, "html.parser")
-    rehydration_script_elements = soup.select('script#__UNIVERSAL_DATA_FOR_REHYDRATION__')
-    if len(rehydration_script_elements) == 1:
-        rehydration_dict = json.loads(rehydration_script_elements[0].text)
-        # extract status code / status message
-        if "__DEFAULT_SCOPE__" in rehydration_dict and "webapp.video-detail" in rehydration_dict["__DEFAULT_SCOPE__"]:
-            return (rehydration_dict["__DEFAULT_SCOPE__"]["webapp.video-detail"],
-                    str(rehydration_dict["__DEFAULT_SCOPE__"]["webapp.video-detail"]["statusCode"]),
-                    rehydration_dict["__DEFAULT_SCOPE__"]["webapp.video-detail"]["statusMsg"])
-        else:
-            return {}, "ERROR", "__DEFAULT_SCOPE__ or webapp.video-detail not in data for rehydration"
-    else:
-        return {}, "ERROR", "script#__UNIVERSAL_DATA_FOR_REHYDRATION__"
-
-
 def check_url(url):
     """
     Check if url exists
     :param url:
-    :return: dict: {"id": video id, "url": page url, "title": page title, "is_video": bool}
+    :return: dict: {"id": video id, "url": page url, "title": page title, "statusCode": status code in response,
+                    "statusMsg": status message in response}
     """
     video_id = url.split("/")[-1]
-    tries = 0
-    reset_driver = False
-    current_title = ""
-    current_errormsg = ""
+    tries, reset_driver = 0, False
+    current_title, current_errormsg = "", ""
     while tries < 4:
         try:
             driver = get_driver(reset_driver)
-            reset_driver = False
             driver.get(url)
-            driver.implicitly_wait(5)
-            current_title = driver.title
-            # tqdm.write(current_title)
-            if driver.title == "Access Denied" or "s videos with | TikTok" in driver.title:
-                reset_driver = True
-                driver.quit()
-                sleep(5)
-            else:
-                # is_video = url != driver.current_url  # valid public videos will autofill uploader username in url
-                metadata_dict, current_statuscode, current_statusmsg = extract_metadata(driver.page_source)
+            driver.implicitly_wait(5)  # wait up to 5 secs just in case things don't load immediately?
+            page_source, current_title, current_url = driver.page_source, driver.title, driver.current_url
+            if (not current_title == "Access Denied") and ("s videos with | TikTok" not in current_title):
+                metadata_dict, current_statuscode, current_statusmsg = extract_metadata(page_source)
                 if current_statuscode == "0":
                     with open(os.path.join(ROOT_DIR, "collections", collection, "metadata", f"{video_id}.json"), "w") as f:
                         json.dump(metadata_dict, f)
                 return {
                     "id": str(video_id),
-                    "url": driver.current_url,
-                    "title": driver.title,
+                    "url": current_url,
+                    "title": current_title,
                     "statusCode": current_statuscode,
                     "statusMsg": current_statusmsg
                 }
@@ -127,10 +95,8 @@ def check_url(url):
             current_errormsg = str(e)
             if "Message: invalid session id" not in current_errormsg:  # "invalid session id" error is fixed with a driver reset
                 tqdm.write(f"{video_id} {current_errormsg}")
-            reset_driver = True
-            driver.quit()
-            sleep(5)
         tries += 1
+        reset_driver = True
     # if check_url fails multiple times, ID is likely associated with private video
     tqdm.write(f"{video_id} returning none")
     return {
@@ -142,25 +108,28 @@ def check_url(url):
     }
 
 
-print(initialize_collection(collection))
-while True:
-    random_timestamp = generate_random_timestamp()
-    all_ids = generate_ids_from_timestamp(random_timestamp, incrementer_shortcut=False)
-    print(datetime.utcfromtimestamp(random_timestamp))
-    with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_queries.json"), "w") as f:
-        json.dump(all_ids, f)
-    with tqdm(total=len(all_ids)) as pbar:
-        with ThreadPoolExecutor(max_workers=15) as executor:
-            results = []
-            futures = [executor.submit(check_url, f"https://www.tiktok.com/@/video/{generated_id}") for
-                       generated_id in all_ids]
-            for future in as_completed(futures):
-                if future.result()["statusCode"] == "0":
-                    tqdm.write(future.result()["id"])
-                    tqdm.write("{:b}".format(int(future.result()["id"])).zfill(64))
-                results.append(future.result())
-                pbar.update(1)
-    with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_hits.json"), "w") as f:
-        json.dump(results, f)
+def main():
+    print(initialize_collection(collection))
+    while True:
+        random_timestamp = generate_random_timestamp(start_timestamp=begin_timestamp, end_timestamp=end_timestamp)
+        all_ids = generate_ids_from_timestamp(random_timestamp, n=sample_size, incrementer_shortcut=incrementer_shortcut)
+        print(datetime.utcfromtimestamp(random_timestamp))
+        with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_queries.json"), "w") as f:
+            json.dump(all_ids, f)
+        with tqdm(total=len(all_ids)) as pbar:
+            with ThreadPoolExecutor(max_workers=15) as executor:
+                results = []
+                futures = [executor.submit(check_url, f"https://www.tiktok.com/@/video/{generated_id}") for
+                           generated_id in all_ids]
+                for future in as_completed(futures):
+                    if future.result()["statusCode"] == "0":
+                        tqdm.write(json.dumps(future.result()))
+                        # tqdm.write("{:b}".format(int(future.result()["id"])).zfill(64))
+                    results.append(future.result())
+                    pbar.update(1)
+        with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_hits.json"), "w") as f:
+            json.dump(results, f)
 
-# pd.DataFrame(results).to_csv(f"datetest/samesecond_{test_id}.csv", index=False, header=True)
+
+if __name__ == "__main__":
+    main()
