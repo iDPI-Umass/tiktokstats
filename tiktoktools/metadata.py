@@ -34,6 +34,9 @@ def analyze_collection(collection: str) -> list:
                                                "statusMsg": response["statusMsg"]}} for response in responses
                              if response["statusCode"] not in ["0", "ERROR"]
                              and response["statusMsg"] != "item doesn't exist"]
+        error_msgs = [{response["id"] : {"statusCode": response["statusCode"], "statusMsg": response["statusMsg"]}}
+                      for response in responses if response["statusCode"] == "ERROR"]
+
         estimated_uploads_per_second = 0
         if len(hits) > 0:
             estimated_uploads_per_second = int((2 ** 22) / (len(responses) / len(hits)))
@@ -46,6 +49,7 @@ def analyze_collection(collection: str) -> list:
             "queries": len(responses),
             "hits": hits,
             "other_messages": other_status_msgs,
+            "error_messages": error_msgs,
             "estimated_uploads_per_second": estimated_uploads_per_second,
             "estimated_uploads_all": estimated_uploads_per_second_deleted
         }
