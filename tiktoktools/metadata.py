@@ -32,7 +32,7 @@ def analyze_collection(collection: str) -> list:
         hits = [response["id"] for response in responses if response["statusCode"] == "0"]
         other_status_msgs = [{response["id"]: {"statusCode": response["statusCode"],
                                                "statusMsg": response["statusMsg"]}} for response in responses
-                             if response["statusCode"] not in ["0", "ERROR"]
+                             if response["statusCode"] not in ["0", "ERROR", "10101"]
                              and response["statusMsg"] != "item doesn't exist"]
         error_msgs = [{response["id"] : {"statusCode": response["statusCode"], "statusMsg": response["statusMsg"]}}
                       for response in responses if response["statusCode"] == "ERROR"]
