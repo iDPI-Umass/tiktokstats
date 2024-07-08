@@ -33,12 +33,15 @@ def analyze_collection(collection: str) -> list:
         other_status_msgs = [{response["id"]: {"statusCode": response["statusCode"],
                                                "statusMsg": response["statusMsg"]}} for response in responses if
                              response["statusCode"] != "0" and response["statusMsg"] != "item doesn't exist"]
+        estimated_uploads_per_second = 0
+        if len(hits) > 0:
+            estimated_uploads_per_second = int((2 ** 22) / (len(responses) / len(hits)))
         summary = {
             "timestamp": timestamp,
             "utc_datetime": datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S"),
             "queries": len(responses),
             "hits": hits,
-            "estimated_uploads_per_second": int((2**22)/(len(responses)/len(hits))),
+            "estimated_uploads_per_second": estimated_uploads_per_second,
             "other_messages": other_status_msgs
         }
         collection_data.append(summary)
