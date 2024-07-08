@@ -36,13 +36,17 @@ def analyze_collection(collection: str) -> list:
         estimated_uploads_per_second = 0
         if len(hits) > 0:
             estimated_uploads_per_second = int((2 ** 22) / (len(responses) / len(hits)))
+        estimated_uploads_per_second_deleted = 0
+        if len(other_status_msgs) + len(hits) > 0:
+            estimated_uploads_per_second_deleted = int((2 ** 22) / (len(responses) / (len(other_status_msgs) + len(hits))))
         summary = {
             "timestamp": timestamp,
             "utc_datetime": datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S"),
             "queries": len(responses),
             "hits": hits,
+            "other_messages": other_status_msgs,
             "estimated_uploads_per_second": estimated_uploads_per_second,
-            "other_messages": other_status_msgs
+            "estimated_uploads_all": estimated_uploads_per_second_deleted
         }
         collection_data.append(summary)
     return collection_data
