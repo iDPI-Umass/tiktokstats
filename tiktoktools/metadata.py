@@ -33,9 +33,9 @@ def analyze_collection(collection: str) -> list:
         other_status_msgs = [{response["id"]: {"statusCode": response["statusCode"],
                                                "statusMsg": response["statusMsg"]}} for response in responses
                              if response["statusCode"] not in ["0", "ERROR", "10101"]
-                             and response["statusMsg"] != "item doesn't exist"]
+                             and response["statusMsg"] not in ["item doesn't exist", "", None]]
         error_msgs = [{response["id"] : {"statusCode": response["statusCode"], "statusMsg": response["statusMsg"]}}
-                      for response in responses if response["statusCode"] == "ERROR"]
+                      for response in responses if response["statusCode"] in ["ERROR", "10101"]]
 
         estimated_uploads_per_second = 0
         if len(hits) > 0:
