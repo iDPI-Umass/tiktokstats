@@ -30,19 +30,25 @@ def analyze_collection(collection: str) -> list:
         timestamp = int(hit_json.split("_")[0])
         datetime.utcfromtimestamp(timestamp)
         hits = [response["id"] for response in responses if response["statusCode"] == "0"]
-        other_status_msgs = [{response["id"]: {"statusCode": response["statusCode"],
-                                               "statusMsg": response["statusMsg"]}} for response in responses
-                             if response["statusCode"] not in ["0", "ERROR", "10101"]
-                             and response["statusMsg"] not in ["item doesn't exist", "", None]]
-        error_msgs = [{response["id"] : {"statusCode": response["statusCode"], "statusMsg": response["statusMsg"]}}
-                      for response in responses if response["statusCode"] in ["ERROR", "10101"]]
+        other_status_msgs = [{
+            "id": response["id"],
+            "statusCode": response["statusCode"],
+            "statusMsg": response["statusMsg"]
+        } for response in responses if response["statusCode"] not in ["0", "ERROR", "10101"] and
+                                       response["statusMsg"] not in ["item doesn't exist", "", None]]
+        error_msgs = [{
+            "id": response["id"],
+            "statusCode": response["statusCode"],
+            "statusMsg": response["statusMsg"]
+        } for response in responses if response["statusCode"] in ["ERROR", "10101"]]
 
         estimated_uploads_per_second = 0
         if len(hits) > 0:
             estimated_uploads_per_second = int((2 ** 22) / (len(responses) / len(hits)))
         estimated_uploads_per_second_deleted = 0
         if len(other_status_msgs) + len(hits) > 0:
-            estimated_uploads_per_second_deleted = int((2 ** 22) / (len(responses) / (len(other_status_msgs) + len(hits))))
+            estimated_uploads_per_second_deleted = int(
+                (2 ** 22) / (len(responses) / (len(other_status_msgs) + len(hits))))
         summary = {
             "timestamp": timestamp,
             "utc_datetime": datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S"),
