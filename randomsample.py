@@ -87,7 +87,7 @@ def check_url(url):
             if not current_title == "Access Denied":  # and ("s videos with | TikTok" not in current_title):
                 metadata_dict, current_statuscode, current_statusmsg = extract_metadata(page_source)
                 if ((current_url != url and current_statuscode != "0" and "https://www.tiktok.com/@/photo/" not in current_url)
-                        or current_statuscode == "100004" or current_statuscode == "10101"):
+                        or current_statuscode == "100004" or current_statuscode == "10101" or current_statusmsg == "ErrSysPanic"):
                     driver.quit()
                     sleep(5)
                     setattr(thread_local, 'driver', None)
@@ -114,6 +114,7 @@ def check_url(url):
             if driver is not None:
                 driver.quit()
             setattr(thread_local, 'driver', None)
+            sleep(5)
         finally:
             tries += 1
             reset_driver = True
