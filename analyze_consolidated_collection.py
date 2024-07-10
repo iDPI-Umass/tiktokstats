@@ -101,7 +101,12 @@ metadata_fields = {
     "music": "music",
     "diversificationId": "diversification_id",
     "diversificationLabels": "diversification_labels",
-    "BAInfo": "BAInfo"
+    "BAInfo": "BAInfo",
+    "isECVideo": "video_is_ec",
+    "itemMute": "item_mute",
+    "anchors": "anchors",
+    "maskType": "mask_type",
+    "playlistId": "playlist_id",
 }
 
 
@@ -168,9 +173,6 @@ def analyze_other_statusmsgs(other_messages: list[dict]) -> dict:
 
 
 def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields: dict = None) -> dict:
-
-    # if fields:
-    #     metadata_fields = fields
     selected_metadata = {}
     selected_metadata["query_timestamp"] = query_timestamp
     selected_metadata["query_id"] = str(query_id)
