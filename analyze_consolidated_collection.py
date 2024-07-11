@@ -95,6 +95,7 @@ metadata_fields = {
     "aigcLabelType": "ai_gc_label_type",
     "isAd": "video_is_ad",
     "adLabelVersion": "ad_label_version",
+    "adAuthorization": "ad_authorization",
     "brandOrganicType": "brand_organic_type",
     "contentLocation": "content_location",
     "poi": "point_of_interest",
@@ -107,6 +108,11 @@ metadata_fields = {
     "anchors": "anchors",
     "maskType": "mask_type",
     "playlistId": "playlist_id",
+    "imagePost": {
+        "title": "image_post_title",
+        "images": "image_post_images"
+    },
+
 }
 
 
@@ -236,6 +242,8 @@ def main():
                 processed_metadata = process_metadata(extant_hit_metadata["itemInfo"]["itemStruct"],
                                                       int(extant_hit),
                                                       int(query_stats_json.split(".")[0]))
+                processed_metadata["status_code"] = extant_hit_metadata["statusCode"]
+                processed_metadata["status_message"] = extant_hit_metadata["statusMsg"]
                 extant_hits_metadata.append(processed_metadata)
 
                 unique_metadata_fields = get_unique_metadata_fields(extant_hit_metadata["itemInfo"]["itemStruct"])
