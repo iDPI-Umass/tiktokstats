@@ -23,4 +23,15 @@ for sampled_second in sampled_seconds:
                     os.path.join(unified_collection_address, "metadata", f"{hit}.json"))
     with open(os.path.join(unified_collection_address, "queries", f"{sampled_second['timestamp']}.json"), "w") as f:
         json.dump(sampled_second, f, indent=4)
-    print(f"{sampled_second['timestamp']}, {len(sampled_second['hits'])}, {sampled_second['estimated_uploads_per_second']}, {len(sampled_second['other_messages'])}, {sampled_second['estimated_uploads_all']}")
+    print(
+        f"{sampled_second['timestamp']}, {len(sampled_second['hits'])}, {sampled_second['estimated_uploads_per_second']}, {len(sampled_second['other_messages'])}, {sampled_second['estimated_uploads_all']}")
+
+    error_summary = {}
+    if len(sampled_second["error_messages"]) > 0:
+        for error_message in sampled_second["error_messages"]:
+            if error_message["statusMsg"] not in error_summary:
+                error_summary[error_message["statusMsg"]] = 0
+            error_summary[error_message["statusMsg"]] += 1
+        print(f"{len(sampled_second['error_messages'])} errors")
+        print(json.dumps(error_summary, indent=4))
+
