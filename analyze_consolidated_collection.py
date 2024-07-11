@@ -108,11 +108,7 @@ metadata_fields = {
     "anchors": "anchors",
     "maskType": "mask_type",
     "playlistId": "playlist_id",
-    "imagePost": {
-        "title": "image_post_title",
-        "images": "image_post_images"
-    },
-
+    "imagePost": "image_post"
 }
 
 
