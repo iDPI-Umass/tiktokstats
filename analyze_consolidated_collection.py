@@ -258,7 +258,7 @@ def main():
         w.writeheader()
         w.writerows(extant_hits_metadata)
     with open(os.path.join(unified_collection_address, "all_ids.csv"), "w") as f:
-        w = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL)
+        w = csv.writer(f, delimiter=',')  #, quoting=csv.QUOTE_ALL)
         w.writerows(all_ids)
 
     for field in sorted(extant_unique_metadata_fields):
