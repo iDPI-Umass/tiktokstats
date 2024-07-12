@@ -223,7 +223,7 @@ def get_unique_metadata_fields(metadata: dict) -> set[tuple]:
 
 
 def main():
-
+    all_ids = []
     queries_stats = []
     extant_hits, extant_hits_metadata = [], []
     extant_unique_metadata_fields: set[tuple] = set()
@@ -246,6 +246,8 @@ def main():
                 extant_unique_metadata_fields.update(unique_metadata_fields)
             except Exception as e:
                 print(f"{extant_hit} {str(e)}")
+        all_ids += [[hit] for hit in query_stats["hits"]]
+        all_ids += [[message["id"]] for message in query_stats["other_messages"]]
 
     with open(os.path.join(unified_collection_address, "queries.csv"), "w") as f:
         w = csv.DictWriter(f, queries_stats[0].keys())
@@ -255,6 +257,10 @@ def main():
         w = csv.DictWriter(f, extant_hits_metadata[0].keys())
         w.writeheader()
         w.writerows(extant_hits_metadata)
+    with open(os.path.join(unified_collection_address, "all_ids.csv"), "w") as f:
+        w = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL)
+        w.writerows(all_ids)
+
     for field in sorted(extant_unique_metadata_fields):
         if len(field) == 1:
             if field[0] not in metadata_fields.keys():
