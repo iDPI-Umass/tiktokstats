@@ -1,10 +1,20 @@
 import os
 import csv
 import json
+import argparse
 from os.path import expanduser
 
 
-unified_collection_address = str(os.path.join(expanduser("~"), "tiktok-random"))
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--incrementer-shortcut", action="store_true",)
+args = parser.parse_args()
+
+unified_collection_folder = "tiktok-random"
+if args.incrementer_shortcut:
+    unified_collection_folder += "-i"
+unified_collection_address = str(os.path.join(expanduser("~"), unified_collection_folder))
+
+
 metadata_fields = {
     "id": "video_id",
     "desc": "description",
