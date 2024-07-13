@@ -23,6 +23,9 @@ def analyze_collection(collection: str) -> list:
     from tiktoktools import ROOT_DIR
     from datetime import datetime
     collection_data = []
+    increment_limit = 64
+    if "_i_" in collection:
+        increment_limit = int(collection.split("_i_")[1].split("_")[0])
     for hit_json in [hit_json for hit_json in os.listdir(
             os.path.join(ROOT_DIR, "collections", collection, "queries")) if hit_json.endswith("_hits.json")]:
         with open(os.path.join(ROOT_DIR, "collections", collection, "queries", hit_json)) as f:
@@ -42,17 +45,22 @@ def analyze_collection(collection: str) -> list:
             "statusMsg": response["statusMsg"]
         } for response in responses if response["statusCode"] in ["ERROR", "10101"]]
 
+        count_hits = len(hits)
+        count_responses = int(len(responses) * 64 / increment_limit)
+
         estimated_uploads_per_second = 0
-        if len(hits) > 0:
-            estimated_uploads_per_second = int((2 ** 22) / (len(responses) / len(hits)))
+        if count_hits > 0:
+            estimated_uploads_per_second = int((2 ** 22) / (count_responses / count_hits))
         estimated_uploads_per_second_deleted = 0
-        if len(other_status_msgs) + len(hits) > 0:
+        if len(other_status_msgs) + count_hits > 0:
             estimated_uploads_per_second_deleted = int(
-                (2 ** 22) / (len(responses) / (len(other_status_msgs) + len(hits))))
+                (2 ** 22) / (count_responses / (len(other_status_msgs) + count_hits)))
         summary = {
             "timestamp": timestamp,
             "utc_datetime": datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S"),
             "queries": len(responses),
+            "effective_queries": count_responses,
+            "increment_limit": increment_limit,
             "hits": hits,
             "other_messages": other_status_msgs,
             "error_messages": error_msgs,

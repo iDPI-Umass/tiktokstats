@@ -23,12 +23,10 @@ parser.add_argument("-s", "--samplesize", type=int, help="number of IDs to sampl
 parser.add_argument("-t", "--threads", type=int, help="number of threads to use")
 parser.add_argument("-b", "--begintimestamp", type=int, help="linux timestamp to start sampling from")
 parser.add_argument("-e", "--endtimestamp", type=int, help="linux timestamp to end sampling at")
-parser.add_argument("-i", "--incrementershortcut", action="store_true", help="take incrementer shortcut")
+parser.add_argument("-i", "--incrementershortcut", type=int, help="limit range of increment")
 args = parser.parse_args()
 
-sample_size, threads, begin_timestamp, end_timestamp, incrementer_shortcut = 50000, 15, JAN_1_2018, TIME_NOW, False
-collection = f"random_tiktok_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
-thread_local = threading.local()
+sample_size, threads, begin_timestamp, end_timestamp, incrementer_shortcut = 50000, 15, JAN_1_2018, TIME_NOW, 0
 
 if args.samplesize is not None:
     sample_size = args.samplesize
@@ -38,9 +36,19 @@ if args.begintimestamp is not None:
     begin_timestamp = args.begintimestamp
 if args.endtimestamp is not None:
     end_timestamp = args.endtimestamp
-if args.incrementershortcut:
-    incrementer_shortcut = args.incrementershortcut
+if args.incrementershortcut is not None:
+    if 0 < args.incrementershortcut < 2**6:
+        incrementer_shortcut = args.incrementershortcut
+    else:
+        raise ValueError(f"{args.incrementershortcut} is not a valid incrementer limit")
 
+collection = f"random_tiktok_"
+if incrementer_shortcut > 0:
+    collection += f"i_{incrementer_shortcut}_"
+collection += f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+
+
+thread_local = threading.local()
 
 def get_driver(reset_driver=False):
     """
@@ -132,7 +140,7 @@ def main():
     print(initialize_collection(collection))
     while True:
         random_timestamp = generate_random_timestamp(start_timestamp=begin_timestamp, end_timestamp=end_timestamp)
-        all_ids = generate_ids_from_timestamp(random_timestamp, n=sample_size, incrementer_shortcut=incrementer_shortcut)
+        all_ids = generate_ids_from_timestamp(random_timestamp, n=sample_size, limit_incrementer_randomness=incrementer_shortcut)
         print(datetime.utcfromtimestamp(random_timestamp))
         with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_queries.json"), "w") as f:
             json.dump(all_ids, f)

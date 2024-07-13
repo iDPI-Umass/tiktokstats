@@ -8,16 +8,15 @@ from tiktoktools.time import random_date, generate_random_timestamp
 from tiktoktools.bits import convert_binary_to_decimal_id, convert_hex_to_binary, generate_random_binary_bits
 
 
-def generate_random_resource_binary_str(resource_type: str = "D", limit_incrementer_randomness: bool = False) -> str:
+def generate_random_resource_binary_str(resource_type: str = "D", limit_incrementer_randomness: int = 0) -> str:
     """
     Generate a random, 32-bit binary string of specified resource type.
     :param resource_type: 1 hex char (D=video)
-    :param limit_incrementer_randomness: reduce randomness of incrementing segment from 6-bits to 4-bits (when true,
-                                        still covers ~95% of used addresses)
+    :param limit_incrementer_randomness: reduce randomness of 6-bit increment segment
     :return: a random, 32-bit binary string of specified resource type.
     """
-    if limit_incrementer_randomness:
-        return f"{generate_random_binary_bits(10)}0000{generate_random_binary_bits(4)}00{convert_hex_to_binary(resource_type)}00{generate_random_binary_bits(6)}"
+    if 0 < limit_incrementer_randomness < 64:
+        return f"{generate_random_binary_bits(10)}00{'{:b}'.format(random.randrange(0, limit_incrementer_randomness)).zfill(6)}00{convert_hex_to_binary(resource_type)}00{generate_random_binary_bits(6)}"
     return f"{generate_random_binary_bits(10)}00{generate_random_binary_bits(6)}00{convert_hex_to_binary(resource_type)}00{generate_random_binary_bits(6)}"
 
 
@@ -36,7 +35,7 @@ def generate_binary_id(timestamp: int = None, resource_type: str = "D") -> str:
     return "{:b}".format(timestamp).zfill(32) + generate_random_resource_binary_str(resource_type)
 
 
-def generate_ids_from_timestamp(timestamp: int = None, n: int = 50000, resource_type: str = "D", incrementer_shortcut=False) -> list[int]:
+def generate_ids_from_timestamp(timestamp: int = None, n: int = 50000, resource_type: str = "D", limit_incrementer_randomness: int = 0) -> list[int]:
     """
     Generate random IDs from a specified timestamp.
     :param timestamp:
@@ -50,7 +49,7 @@ def generate_ids_from_timestamp(timestamp: int = None, n: int = 50000, resource_
     timestamp_binary = "{:b}".format(timestamp).zfill(32)
     unique_ids = set()
     while len(unique_ids) < n:
-        unique_ids.add(generate_random_resource_binary_str(resource_type, incrementer_shortcut))
+        unique_ids.add(generate_random_resource_binary_str(resource_type, limit_incrementer_randomness))
     unique_ids = list(unique_ids)
     unique_ids = [int(f"{timestamp_binary}{unique_id}", 2) for unique_id in unique_ids]
     return unique_ids
