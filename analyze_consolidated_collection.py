@@ -123,6 +123,7 @@ metadata_fields = {
 
 
 def analyze_query_stats(query_stats: dict) -> dict:
+    print(query_stats["timestamp"])
     other_hits = analyze_other_statusmsgs(query_stats["other_messages"])
     summary = {
         "unix_timestamp": query_stats["timestamp"],
