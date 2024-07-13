@@ -8,11 +8,15 @@ from tiktoktools.metadata import analyze_collection
 
 parser = argparse.ArgumentParser()
 parser.add_argument("collection", type=str, help="collection to analyze")
+parser.add_argument("-i", "--incrementer-shortcut", action="store_true",)
 args = parser.parse_args()
 
 collection = args.collection  # "random_tiktok_20240706_190713_720518"  # wells
 collection_address = str(os.path.join(ROOT_DIR, "collections", collection))
-unified_collection_address = str(os.path.join(expanduser("~"), "tiktok-random"))
+unified_collection_folder = "tiktok-random"
+if args.incrementer_shortcut:
+    unified_collection_folder += "-i"
+unified_collection_address = str(os.path.join(expanduser("~"), unified_collection_folder))
 
 sampled_seconds = analyze_collection(collection)
 print("timestamp, # hits, estimated uploads/s, # private/deleted, estimated uploads/s (+deleted)")
