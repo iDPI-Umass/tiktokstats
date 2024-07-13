@@ -47,14 +47,15 @@ def analyze_collection(collection: str) -> list:
 
         count_hits = len(hits)
         count_responses = int(len(responses) * 64 / increment_limit)
+        count_private_deleted = len(other_status_msgs)
 
         estimated_uploads_per_second = 0
         if count_hits > 0:
             estimated_uploads_per_second = int((2 ** 22) / (count_responses / count_hits))
         estimated_uploads_per_second_deleted = 0
-        if len(other_status_msgs) + count_hits > 0:
+        if count_private_deleted + count_hits > 0:
             estimated_uploads_per_second_deleted = int(
-                (2 ** 22) / (count_responses / (len(other_status_msgs) + count_hits)))
+                (2 ** 22) / (count_responses / (count_private_deleted + count_hits)))
         summary = {
             "timestamp": timestamp,
             "utc_datetime": datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S"),
