@@ -41,7 +41,7 @@ def generate_ids_from_timestamp(timestamp: int = None, n: int = 50000, resource_
     :param timestamp:
     :param n:
     :param resource_type:
-    :param incrementer_shortcut:
+    :param limit_incrementer_randomness:
     :return:
     """
     if timestamp is None:

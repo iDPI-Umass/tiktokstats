@@ -125,7 +125,7 @@ def analyze_query_stats(query_stats: dict) -> dict:
     summary["total_hits"] = sum(other_hits.values()) + summary["extant_hits"]
     summary["total_hit_rate"] = 0
     if summary["total_hits"] > 0:
-        summary["total_hit_rate"] = int((2**22) / (query_stats["queries"] / summary["total_hits"]))
+        summary["total_hit_rate"] = int((2**22) / (query_stats["effective_queries"] / summary["total_hits"]))
     return summary
 
 
@@ -175,9 +175,7 @@ def analyze_other_statusmsgs(other_messages: list[dict]) -> dict:
 
 
 def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields: dict = None) -> dict:
-    selected_metadata = {}
-    selected_metadata["query_timestamp"] = query_timestamp
-    selected_metadata["query_id"] = str(query_id)
+    selected_metadata = {"query_timestamp": query_timestamp, "query_id": str(query_id)}
     for field_0 in metadata_fields.keys():
         if isinstance(metadata_fields[field_0], str):
             if field_0 in metadata.keys():
@@ -204,7 +202,7 @@ def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields
 
 
 def get_unique_metadata_fields(metadata: dict) -> set[tuple]:
-    metadata_fields = set()
+    unique_metadata_fields = set()
     for field_0 in metadata.keys():
         if isinstance(metadata[field_0], dict):
             for field_1 in metadata[field_0].keys():
@@ -212,14 +210,14 @@ def get_unique_metadata_fields(metadata: dict) -> set[tuple]:
                     for field_2 in metadata[field_0][field_1].keys():
                         if isinstance(metadata[field_0][field_1][field_2], dict):
                             for field_3 in metadata[field_0][field_1][field_2].keys():
-                                metadata_fields.add((field_0, field_1, field_2, field_3))
+                                unique_metadata_fields.add((field_0, field_1, field_2, field_3))
                         else:
-                            metadata_fields.add((field_0, field_1, field_2))
+                            unique_metadata_fields.add((field_0, field_1, field_2))
                 else:
-                    metadata_fields.add((field_0, field_1))
+                    unique_metadata_fields.add((field_0, field_1))
         else:
-            metadata_fields.add((field_0,))
-    return metadata_fields
+            unique_metadata_fields.add((field_0,))
+    return unique_metadata_fields
 
 
 def main():
@@ -262,7 +260,7 @@ def main():
         w.writeheader()
         w.writerows(extant_hits_metadata)
     with open(os.path.join(unified_collection_address, "all_ids.csv"), "w") as f:
-        w = csv.writer(f, delimiter=',')  #, quoting=csv.QUOTE_ALL)
+        w = csv.writer(f, delimiter=',')  # , quoting=csv.QUOTE_ALL)
         w.writerows(all_ids)
 
     for field in sorted(extant_unique_metadata_fields):

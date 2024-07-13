@@ -47,8 +47,8 @@ if incrementer_shortcut > 0:
     collection += f"i_{incrementer_shortcut}_"
 collection += f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
 
-
 thread_local = threading.local()
+
 
 def get_driver(reset_driver=False):
     """
