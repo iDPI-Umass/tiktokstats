@@ -250,9 +250,9 @@ def main():
                 processed_metadata["status_code"] = extant_hit_metadata["statusCode"]
                 processed_metadata["status_message"] = extant_hit_metadata["statusMsg"]
                 binary_id = "{:b}".format(int(extant_hit)).zfill(64)
-                processed_metadata["first10"] = binary_id[32:42]
-                processed_metadata["increment"] = binary_id[44:50]
-                processed_metadata["last6"] = binary_id[58:64]
+                processed_metadata["first10"] = f"\"{binary_id[32:42]}\""
+                processed_metadata["increment"] = f"\"binary_id[44:50]\""
+                processed_metadata["last6"] = f"\"binary_id[58:64]\""
                 extant_hits_metadata.append(processed_metadata)
 
                 unique_metadata_fields = get_unique_metadata_fields(extant_hit_metadata["itemInfo"]["itemStruct"])
