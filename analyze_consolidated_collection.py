@@ -123,7 +123,7 @@ metadata_fields = {
 
 
 def analyze_query_stats(query_stats: dict) -> dict:
-    print(query_stats["timestamp"])
+    # print(query_stats["timestamp"])
     other_hits = analyze_other_statusmsgs(query_stats["other_messages"])
     summary = {
         "unix_timestamp": query_stats["timestamp"],
@@ -188,27 +188,29 @@ def analyze_other_statusmsgs(other_messages: list[dict]) -> dict:
 def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields: dict = None) -> dict:
     selected_metadata = {"query_timestamp": query_timestamp, "query_id": str(query_id)}
     for field_0 in metadata_fields.keys():
-        if isinstance(metadata_fields[field_0], str):
-            if field_0 in metadata.keys():
+        if field_0 in metadata.keys():
+            if isinstance(metadata_fields[field_0], str):
                 if isinstance(metadata[field_0], dict) or isinstance(metadata[field_0], list):
                     selected_metadata[metadata_fields[field_0]] = json.dumps(metadata[field_0])
                 elif (isinstance(metadata[field_0], int) or isinstance(metadata[field_0], float)) and metadata[field_0] > 2**53:
                     selected_metadata[metadata_fields[field_0]] = str(metadata[field_0])
                 else:
                     selected_metadata[metadata_fields[field_0]] = metadata[field_0]
-            else:
-                selected_metadata[metadata_fields[field_0]] = None
-        elif isinstance(metadata_fields[field_0], dict):
-            for field_1 in metadata_fields[field_0].keys():
-                if field_1 in metadata[field_0].keys():
-                    if isinstance(metadata[field_0][field_1], dict) or isinstance(metadata[field_0][field_1], list):
-                        selected_metadata[metadata_fields[field_0][field_1]] = json.dumps(metadata[field_0][field_1])
-                    elif isinstance(metadata[field_0][field_1], int) and metadata[field_0][field_1] > 2**53:
-                        selected_metadata[metadata_fields[field_0][field_1]] = str(metadata[field_0][field_1])
+            elif isinstance(metadata_fields[field_0], dict):
+                for field_1 in metadata_fields[field_0].keys():
+                    if field_1 in metadata[field_0].keys():
+                        if isinstance(metadata[field_0][field_1], dict) or isinstance(metadata[field_0][field_1], list):
+                            selected_metadata[metadata_fields[field_0][field_1]] = json.dumps(
+                                metadata[field_0][field_1])
+                        elif isinstance(metadata[field_0][field_1], int) and metadata[field_0][field_1] > 2 ** 53:
+                            selected_metadata[metadata_fields[field_0][field_1]] = str(metadata[field_0][field_1])
+                        else:
+                            selected_metadata[metadata_fields[field_0][field_1]] = metadata[field_0][field_1]
                     else:
-                        selected_metadata[metadata_fields[field_0][field_1]] = metadata[field_0][field_1]
-                else:
-                    selected_metadata[metadata_fields[field_0][field_1]] = None
+                        selected_metadata[metadata_fields[field_0][field_1]] = None
+        else:
+            selected_metadata[metadata_fields[field_0]] = None
+
     return selected_metadata
 
 
