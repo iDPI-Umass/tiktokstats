@@ -209,7 +209,11 @@ def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields
                     else:
                         selected_metadata[metadata_fields[field_0][field_1]] = None
         else:
-            selected_metadata[metadata_fields[field_0]] = None
+            if isinstance(metadata_fields[field_0], str):
+                selected_metadata[metadata_fields[field_0]] = None
+            elif isinstance(metadata_fields[field_0], dict):
+                for field_1 in metadata_fields[field_0].keys():
+                    selected_metadata[metadata_fields[field_0][field_1]] = None
 
     return selected_metadata
 
