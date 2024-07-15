@@ -118,7 +118,8 @@ metadata_fields = {
     "anchors": "anchors",
     "maskType": "mask_type",
     "playlistId": "playlist_id",
-    "imagePost": "image_post"
+    "imagePost": "image_post",
+    "isContentClassified": "is_content_classified",
 }
 
 
@@ -192,8 +193,9 @@ def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields
             if isinstance(metadata_fields[field_0], str):
                 if isinstance(metadata[field_0], dict) or isinstance(metadata[field_0], list):
                     selected_metadata[metadata_fields[field_0]] = json.dumps(metadata[field_0])
-                elif (isinstance(metadata[field_0], int) or isinstance(metadata[field_0], float)) and metadata[field_0] > 2**53:
-                    selected_metadata[metadata_fields[field_0]] = str(metadata[field_0])
+                elif ((isinstance(metadata[field_0], int) or isinstance(metadata[field_0], float))
+                      and metadata[field_0] > 2**53):
+                    selected_metadata[metadata_fields[field_0]] = f"\"{metadata[field_0]}\""
                 else:
                     selected_metadata[metadata_fields[field_0]] = metadata[field_0]
             elif isinstance(metadata_fields[field_0], dict):
@@ -202,8 +204,9 @@ def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields
                         if isinstance(metadata[field_0][field_1], dict) or isinstance(metadata[field_0][field_1], list):
                             selected_metadata[metadata_fields[field_0][field_1]] = json.dumps(
                                 metadata[field_0][field_1])
-                        elif isinstance(metadata[field_0][field_1], int) and metadata[field_0][field_1] > 2 ** 53:
-                            selected_metadata[metadata_fields[field_0][field_1]] = str(metadata[field_0][field_1])
+                        elif (isinstance(metadata[field_0][field_1], int) or
+                              isinstance(metadata[field_0][field_1], float)) and metadata[field_0][field_1] > 2 ** 53:
+                            selected_metadata[metadata_fields[field_0][field_1]] = f"\"{metadata[field_0][field_1]}\""
                         else:
                             selected_metadata[metadata_fields[field_0][field_1]] = metadata[field_0][field_1]
                     else:
@@ -253,12 +256,15 @@ def main():
                 processed_metadata = process_metadata(extant_hit_metadata["itemInfo"]["itemStruct"],
                                                       int(extant_hit),
                                                       int(query_stats_json.split(".")[0]))
-                processed_metadata["status_code"] = extant_hit_metadata["statusCode"]
-                processed_metadata["status_message"] = extant_hit_metadata["statusMsg"]
+
+                processed_metadata["status_code"] = extant_hit_metadata["statusCode"] if "statusCode" in extant_hit_metadata.keys() else None
+                processed_metadata["status_message"] = extant_hit_metadata["statusMsg"] if "statusMsg" in extant_hit_metadata.keys() else None
                 binary_id = "{:b}".format(int(extant_hit)).zfill(64)
                 processed_metadata["first10"] = f"\"{binary_id[32:42]}\""
                 processed_metadata["increment"] = f"\"{binary_id[44:50]}\""
                 processed_metadata["last6"] = f"\"{binary_id[58:64]}\""
+                processed_metadata["share_meta_title"] = extant_hit_metadata["shareMeta"]["title"] if "shareMeta" in extant_hit_metadata.keys() else None
+                processed_metadata["share_meta_description"] = extant_hit_metadata["shareMeta"]["desc"]  if "shareMeta" in extant_hit_metadata.keys() else None
                 extant_hits_metadata.append(processed_metadata)
 
                 unique_metadata_fields = get_unique_metadata_fields(extant_hit_metadata["itemInfo"]["itemStruct"])
@@ -285,7 +291,8 @@ def main():
             if field[0] not in metadata_fields.keys():
                 print(field)
         if len(field) >= 2:
-            if field[0] not in metadata_fields.keys() or (isinstance(metadata_fields[field[0]], dict) and field[1] not in metadata_fields[field[0]].keys()):
+            if field[0] not in metadata_fields.keys() or (isinstance(metadata_fields[field[0]], dict)
+                                                          and field[1] not in metadata_fields[field[0]].keys()):
                 print(field)
 
     # with open(os.path.join(unified_collection_address, "metadata.csv"), "w") as f:
