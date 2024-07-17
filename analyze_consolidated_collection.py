@@ -196,6 +196,8 @@ def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields
                 elif str(metadata[field_0]).isnumeric() or isinstance(metadata[field_0], bool):
                     # ((isinstance(metadata[field_0], int) or isinstance(metadata[field_0], float))
                     selected_metadata[metadata_fields[field_0]] = metadata[field_0]
+                elif metadata[field_0] is None:
+                    selected_metadata[metadata_fields[field_0]] = None
                 else:
                     selected_metadata[metadata_fields[field_0]] = f"\"{metadata[field_0]}\"".replace("\n", " ")
             elif isinstance(metadata_fields[field_0], dict):
@@ -207,6 +209,8 @@ def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields
                         elif str(metadata[field_0][field_1]).isnumeric() or isinstance(metadata[field_0][field_1], bool):
                             # isinstance(metadata[field_0][field_1], float) or
                             selected_metadata[metadata_fields[field_0][field_1]] = metadata[field_0][field_1]
+                        elif metadata[field_0][field_1] is None:
+                            selected_metadata[metadata_fields[field_0][field_1]] = None
                         else:
                             selected_metadata[metadata_fields[field_0][field_1]] = f"\"{metadata[field_0][field_1]}\"".replace("\n", " ")
                     else:
