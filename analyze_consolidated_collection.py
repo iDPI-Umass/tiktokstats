@@ -197,7 +197,7 @@ def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields
                       and metadata[field_0] > 2**53):
                     selected_metadata[metadata_fields[field_0]] = f"\"{metadata[field_0]}\""
                 else:
-                    selected_metadata[metadata_fields[field_0]] = metadata[field_0]
+                    selected_metadata[metadata_fields[field_0]] = f"\"{metadata[field_0]}\""
             elif isinstance(metadata_fields[field_0], dict):
                 for field_1 in metadata_fields[field_0].keys():
                     if field_1 in metadata[field_0].keys():
@@ -208,7 +208,7 @@ def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields
                               isinstance(metadata[field_0][field_1], float)) and metadata[field_0][field_1] > 2 ** 53:
                             selected_metadata[metadata_fields[field_0][field_1]] = f"\"{metadata[field_0][field_1]}\""
                         else:
-                            selected_metadata[metadata_fields[field_0][field_1]] = metadata[field_0][field_1]
+                            selected_metadata[metadata_fields[field_0][field_1]] = f"\"{metadata[field_0][field_1]}\""
                     else:
                         selected_metadata[metadata_fields[field_0][field_1]] = None
         else:
