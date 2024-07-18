@@ -212,7 +212,10 @@ def process_metadata(metadata: dict, query_id: int, query_timestamp: int, fields
                         elif metadata[field_0][field_1] is None:
                             selected_metadata[metadata_fields[field_0][field_1]] = None
                         else:
-                            selected_metadata[metadata_fields[field_0][field_1]] = f"\"{metadata[field_0][field_1]}\"".replace("\n", " ")
+                            value = f"\"{metadata[field_0][field_1]}\"".replace("\n", " ")
+                            value = value.replace('"', "")
+                            value = value.replace(",", " ")
+                            selected_metadata[metadata_fields[field_0][field_1]] = value
                     else:
                         selected_metadata[metadata_fields[field_0][field_1]] = None
         else:
