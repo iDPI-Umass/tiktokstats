@@ -286,7 +286,7 @@ def main():
         w.writeheader()
         w.writerows(queries_stats)
     with open(os.path.join(unified_collection_address, "metadata.csv"), "w") as f:
-        w = csv.DictWriter(f, extant_hits_metadata[0].keys())
+        w = csv.DictWriter(f, extant_hits_metadata[0].keys(), quotechar='"', delimiter=',', escapechar='\\')
         w.writeheader()
         w.writerows(extant_hits_metadata)
     with open(os.path.join(unified_collection_address, "all_ids.csv"), "w") as f:
