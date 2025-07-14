@@ -66,11 +66,14 @@ def get_driver(reset_driver=False):
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--headless=new")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--incognito")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        driver = webdriver.Chrome(options=chrome_options, service=ChromeService(ChromeDriverManager().install()))
+        chrome_options.add_argument("--log-level=1")
+        chrome_options.add_argument("--mute-audio")
+        chrome_options.add_argument("--enable-unsafe-swiftshader")
+        driver = webdriver.Chrome(options=chrome_options)
     setattr(thread_local, 'driver', driver)
     return driver
 
@@ -145,7 +148,7 @@ def main():
         with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_queries.json"), "w") as f:
             json.dump(all_ids, f)
         with tqdm(total=len(all_ids)) as pbar:
-            with ThreadPoolExecutor(max_workers=15) as executor:
+            with ThreadPoolExecutor(max_workers=5) as executor:
                 results = []
                 futures = [executor.submit(check_url, f"https://www.tiktok.com/@/video/{generated_id}") for
                            generated_id in all_ids]
