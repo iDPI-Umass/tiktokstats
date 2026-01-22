@@ -1,6 +1,5 @@
 import random
 
-
 def generate_bitswap_ids(id_int: int) -> list[int]:
     """
     Generate an integer list of bitswapped resource binary IDs from a known ID, to test if bitswapped IDs are valid
@@ -23,8 +22,12 @@ def extract_resource_binary_from_id(id_int: int) -> str:
     :param id_int: integer ID
     :return:
     """
-    if id_int < 6505865277131980800:
-        raise ValueError("timestamp is before Jan 1 2018 00:00:00")
+    # Value for 2018
+    #if id_int < 6505865277131980800:
+    #    raise ValueError("timestamp is before Jan 1 2018 00:00:00")
+    # Value for 2017
+    if id_int < 6370419188485324800:
+        raise ValueError("timestamp is before Jan 1 2017 00:00:00")
     id_binary = "{:b}".format(id_int).zfill(64)
     return id_binary[32:]
 
@@ -36,8 +39,12 @@ def convert_binary_to_decimal_id(binary_id: str) -> int:
     :return:
     """
     decimal_id = int(binary_id, 2)
-    if decimal_id < 6505865277131980800:
-        raise ValueError("timestamp is before Jan 1 2018 00:00:00")
+    # Value for 2018
+    #if decimal_id < 6505865277131980800:
+    #    raise ValueError("timestamp is before Jan 1 2018 00:00:00")
+    # Value for 2017
+    if decimal_id < 6370419188485324800:
+        raise ValueError("timestamp is before Jan 1 2017 00:00:00")
     return decimal_id
 
 
