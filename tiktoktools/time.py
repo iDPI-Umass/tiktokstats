@@ -1,7 +1,7 @@
 import calendar
 import random
 from datetime import timedelta, datetime
-from tiktoktools import JAN_1_2018, TIME_NOW
+from tiktoktools import JAN_1_2018, JAN_1_2017, TIME_NOW
 
 
 def date_range(start_date, end_date):
@@ -12,13 +12,13 @@ def date_range(start_date, end_date):
 def generate_random_timestamp(start_timestamp: int = None, end_timestamp: int = None) -> int:
     """
     Generate a random timestamp within a specified range.
-    :param start_timestamp: unix integer timestamp (default is jan 1 2018 00:00:00)
+    :param start_timestamp: unix integer timestamp (default is jan 1 2017 00:00:00)
     :param end_timestamp: unix integer timestamp (default is datetime.utcnow())
     :return: random integer timestamp
     """
-    if start_timestamp is None or start_timestamp < JAN_1_2018 or start_timestamp > TIME_NOW:
-        start_timestamp = JAN_1_2018
-    if end_timestamp is None or end_timestamp > TIME_NOW or end_timestamp < JAN_1_2018:
+    if start_timestamp is None or start_timestamp < JAN_1_2017 or start_timestamp > TIME_NOW:
+        start_timestamp = JAN_1_2017
+    if end_timestamp is None or end_timestamp > TIME_NOW or end_timestamp < JAN_1_2017:
         end_timestamp = TIME_NOW
     return random.randint(start_timestamp, end_timestamp)
 
@@ -32,8 +32,8 @@ def extract_datetime_from_id(id_int: int) -> datetime:
     id_binary = "{:b}".format(id_int).zfill(64)
     timestamp_binary = id_binary[0:32]
     timestamp_decimal = int(timestamp_binary, 2)
-    if timestamp_decimal < JAN_1_2018:
-        raise ValueError("timestamp is before Jan 1 2018 00:00:00")
+    if timestamp_decimal < JAN_1_2017:
+        raise ValueError("timestamp is before Jan 1 2017 00:00:00")
     if timestamp_decimal > TIME_NOW:
         raise ValueError("timestamp is after current time")
     return datetime.utcfromtimestamp(timestamp_decimal)

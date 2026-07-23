@@ -3,6 +3,8 @@ import stat
 from datetime import datetime
 
 JAN_1_2018: int = 1514764800
+JAN_1_2017: int = 1483228800
+
 TIME_NOW: int = int(datetime.utcnow().timestamp())
 ROOT_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 
