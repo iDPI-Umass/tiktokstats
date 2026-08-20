@@ -10,3 +10,4 @@ temp
 *.wav
 *.webm*
 *.json
+env/
