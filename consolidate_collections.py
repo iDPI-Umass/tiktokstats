@@ -38,4 +38,3 @@ for sampled_second in sampled_seconds:
             error_summary[error_message["statusMsg"]] += 1
         print(f"{len(sampled_second['error_messages'])} errors")
         print(json.dumps(error_summary, indent=4))
-

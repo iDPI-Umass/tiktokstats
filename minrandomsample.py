@@ -24,9 +24,10 @@ parser.add_argument("-t", "--threads", type=int, help="number of threads to use"
 parser.add_argument("-b", "--begintimestamp", type=int, help="linux timestamp to start sampling from")
 parser.add_argument("-e", "--endtimestamp", type=int, help="linux timestamp to end sampling at")
 parser.add_argument("-i", "--incrementershortcut", type=int, help="limit range of increment")
+parser.add_argument("-m", "--minvideos", type=int, help="minimum number of successful videos (statusCode == '0')")
 args = parser.parse_args()
 
-sample_size, threads, begin_timestamp, end_timestamp, incrementer_shortcut = 50000, 15, JAN_1_2018, TIME_NOW, 10
+sample_size, threads, begin_timestamp, end_timestamp, incrementer_shortcut, min_videos = 50000, 15, JAN_1_2018, TIME_NOW, 10, 0
 
 if args.samplesize is not None:
     sample_size = args.samplesize
@@ -41,6 +42,8 @@ if args.incrementershortcut is not None:
         incrementer_shortcut = args.incrementershortcut
     else:
         raise ValueError(f"{args.incrementershortcut} is not a valid incrementer limit")
+if args.minvideos is not None:
+    min_videos = args.minvideos
 
 collection = f"random_tiktok_"
 if incrementer_shortcut > 0:
@@ -138,6 +141,7 @@ def check_url(url):
 
 def main():
     print(initialize_collection(collection))
+    total_hits = 0
     while True:
         random_timestamp = generate_random_timestamp(start_timestamp=begin_timestamp, end_timestamp=end_timestamp)
         all_ids = generate_ids_from_timestamp(random_timestamp, n=sample_size, limit_incrementer_randomness=incrementer_shortcut)
@@ -145,18 +149,24 @@ def main():
         with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_queries.json"), "w") as f:
             json.dump(all_ids, f)
         with tqdm(total=len(all_ids)) as pbar:
-            with ThreadPoolExecutor(max_workers=15) as executor:
+            with ThreadPoolExecutor(max_workers=threads) as executor:
                 results = []
                 futures = [executor.submit(check_url, f"https://www.tiktok.com/@/video/{generated_id}") for
                            generated_id in all_ids]
                 for future in as_completed(futures):
-                    if future.result()["statusCode"] == "0":
-                        tqdm.write(json.dumps(future.result()))
-                        # tqdm.write("{:b}".format(int(future.result()["id"])).zfill(64))
-                    results.append(future.result())
+                    result = future.result()
+                    if result["statusCode"] == "0":
+                        tqdm.write(json.dumps(result))
+                        # tqdm.write("{:b}".format(int(result["id"])).zfill(64))
+                        total_hits += 1
+                    results.append(result)
                     pbar.update(1)
+                    if min_videos > 0 and total_hits >= min_videos:
+                        break
         with open(os.path.join(ROOT_DIR, "collections", collection, "queries", f"{random_timestamp}_hits.json"), "w") as f:
             json.dump(results, f)
+        if min_videos > 0 and total_hits >= min_videos:
+            break
 
 
 if __name__ == "__main__":
