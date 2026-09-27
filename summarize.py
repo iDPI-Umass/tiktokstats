@@ -57,17 +57,25 @@ COUNTRY_NAMES = {
 
 SEARCH_SPACE_PER_SECOND = 2**22  # 4,194,304
 
+JAN_1_1971 = 31536000  # 1971-01-01 00:00:00 UTC; create_timestamp below this decodes to 1970
+
 
 class TikTokSummarizer:
 
-    def __init__(self, collection_path: str, collection_date: str = None):
+    def __init__(self, collection_path: str, collection_date: str = None, filter_1970: bool = False):
         self.collection_path = collection_path
         self.collection_date = collection_date
+        self.filter_1970 = filter_1970
+        self.n_filtered_1970 = 0
 
         self._load_query_jsons()
 
-        self.metadata_df = pd.read_csv(os.path.join(collection_path, "metadata.csv"))
+        self.metadata_df = pd.read_csv(os.path.join(collection_path, "metadata.csv"),
+                                       dtype={"video_id": str})
         print(f"Loaded metadata.csv: {len(self.metadata_df)} extant video hits")
+
+        if self.filter_1970:
+            self._filter_1970_videos()
 
         if self.collection_date is None:
             max_ts = max(self.timestamps)
@@ -94,6 +102,7 @@ class TikTokSummarizer:
         self.per_second_extant_hits = []
         self.per_second_total_hits = []
         self.increment_limit = None
+        self.per_second_hit_ids = []
 
         for fname in sorted(os.listdir(queries_dir)):
             if not fname.endswith(".json"):
@@ -109,6 +118,7 @@ class TikTokSummarizer:
             other = len(data["other_messages"])
             self.per_second_extant_hits.append(extant)
             self.per_second_total_hits.append(extant + other)
+            self.per_second_hit_ids.append({str(h) for h in data["hits"]})
 
             if self.increment_limit is None:
                 self.increment_limit = data.get("increment_limit", 64)
@@ -127,6 +137,46 @@ class TikTokSummarizer:
         print(f"  Extant hits: {self.total_extant_hits:,}")
         print(f"  Total hits: {self.total_all_hits:,}")
         print(f"  Timestamp range: {self.total_seconds_in_range:,} seconds")
+
+    def _filter_1970_videos(self):
+        """
+        Remove videos whose create_timestamp decodes to 1970 (i.e. TikTok returned
+        no real creation time) from BOTH the metadata and the per-second hit counts,
+        so every downstream number (size, margins, distributions, annual uploads)
+        is computed from the same post-filter sample. 
+        """
+        df = self.metadata_df
+
+        create_ts = pd.to_numeric(df["create_timestamp"], errors="coerce")
+        is_1970 = create_ts.notna() & (create_ts < JAN_1_1971)
+        removed_ids = set(df.loc[is_1970, "video_id"].astype(str).str.strip('"'))
+        self.n_filtered_1970 = int(is_1970.sum())
+
+        self.metadata_df = df.loc[~is_1970].reset_index(drop=True)
+
+        matched, seconds_affected = 0, 0
+        for i, hit_ids in enumerate(self.per_second_hit_ids):
+            n_removed = len(hit_ids & removed_ids)
+            if n_removed:
+                self.per_second_extant_hits[i] -= n_removed
+                self.per_second_total_hits[i] -= n_removed
+                matched += n_removed
+                seconds_affected += 1
+        if matched != len(removed_ids):
+            raise ValueError(
+                f"Only {matched:,} of {len(removed_ids):,} filtered video_ids were found in queries/. "
+                "metadata.csv and queries/ are out of sync, or some video_ids are blank."
+                "Re-run analyze_consolidated_collection.py on this collection folder."
+            )
+
+        self.total_extant_hits = sum(self.per_second_extant_hits)
+        self.total_all_hits = sum(self.per_second_total_hits)
+
+        print(f"\nFiltered {self.n_filtered_1970:,} videos with a 1970 create_timestamp "
+              f"across {seconds_affected:,} sampled seconds")
+        print(f"  Extant hits after filter: {self.total_extant_hits:,}")
+        print(f"  Total hits after filter:  {self.total_all_hits:,}")
+        print(f"  Metadata rows after filter: {len(self.metadata_df):,}")
 
     def _compute_size_estimates(self):
         # Global hit rate (single rate across entire sample)
@@ -320,6 +370,7 @@ class TikTokSummarizer:
                 "total_hits": self.total_all_hits,
                 "sampled_seconds": self.n_queries,
                 "total_seconds_in_range": self.total_seconds_in_range,
+                "filtered_1970_videos": self.n_filtered_1970,
             },
             "stats": {
                 "fields": self.stats_fields,
@@ -341,10 +392,15 @@ def main():
     parser.add_argument("collection_path", type=str)
     parser.add_argument("-o", "--output", type=str, default=None)
     parser.add_argument("-d", "--date", type=str, default=None)
+    parser.add_argument(
+        "--filter-1970", action="store_true",
+        help="drop videos whose create_timestamp is in 1970 (missing metadata) "
+             "before computing stats and the size estimate",
+    )
     args = parser.parse_args()
 
     output_path = args.output or os.path.join(args.collection_path, "summary.json")
-    summarizer = TikTokSummarizer(args.collection_path, collection_date=args.date)
+    summarizer = TikTokSummarizer(args.collection_path, collection_date=args.date, filter_1970=args.filter_1970)
     summarizer.calculate()
     result = summarizer.export_json(output_path)
 
